@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"reflect"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -66,13 +67,37 @@ func (service *EnvVarConfigSource) Load(prev *map[string]any) (*map[string]any, 
 	if prev == nil {
 		return nil, nil
 	}
-	for k := range *prev {
-		envKey := strings.ToUpper(service._prefix + "_" + ToSnakeCase(k))
-		val, ok := os.LookupEnv(envKey)
+	prefix := strings.ToUpper(service._prefix)
+	from_env := make(map[string]string)
+	for _, envKey := range os.Environ() {
+		if strings.Index(envKey, prefix) == 0 && len(envKey) > len(prefix)+1 {
+			splitted := strings.Split(envKey, "=")
+			from_env[splitted[0]] = splitted[1]
+		}
+	}
+	for k := range from_env {
+		prev_key := strings.ToLower(k[len(prefix)+1:])
+		prev_val, prev_ok := (*prev)[prev_key]
+		if prev_ok {
+			// TODO: find typeof pre_val and try parsing value to appropriate type
+			fmt.Printf("attempting to parse: %v to %T", from_env[k], prev_val)
+			parsed_val, ok := ParseToType(from_env[k], reflect.TypeOf(prev_val))
+			if ok {
+				(*prev)[prev_key] = parsed_val
+			} else {
+				(*prev)[prev_key] = from_env[k]
+			}
+		} else {
+			(*prev)[prev_key] = from_env[k]
+		}
+	}
+	/* for k := range *prev {
+		envKey := strings.ToUpper(prefix + "_" + ToSnakeCase(k))
+		val, ok := from_env[envKey]
 		if ok {
 			(*prev)[k] = val
 		}
-	}
+	} */
 	return prev, nil
 }
 
@@ -168,15 +193,6 @@ type DefaultConfigService struct {
 	_config map[string]any
 }
 
-/* func (service *DefaultConfigService) AddSource(src ConfigSource) ConfigService {
-	result, err := src.Load(&service._config)
-	service._config = *result
-	if err != nil {
-		log.Printf("failed to load config source: %v", err)
-	}
-	return service
-} */
-
 func (service *DefaultConfigService) GetAny(key string) any {
 	return service._config[key]
 }
@@ -194,7 +210,8 @@ func (service *DefaultConfigService) GetFloat64(key string) float64 {
 	if val == nil {
 		return 0
 	}
-	return val.(float64)
+	conv_val, _ := Parse[float64](fmt.Sprintf("%v", val))
+	return conv_val
 }
 
 func (service *DefaultConfigService) GetInt64(key string) int64 {
@@ -202,7 +219,8 @@ func (service *DefaultConfigService) GetInt64(key string) int64 {
 	if val == nil {
 		return 0
 	}
-	return int64(val.(float64))
+	conv_val, _ := Parse[int64](fmt.Sprintf("%v", val))
+	return conv_val
 }
 
 func (service *DefaultConfigService) GetStr(key string) string {
@@ -210,7 +228,7 @@ func (service *DefaultConfigService) GetStr(key string) string {
 	if val == nil {
 		return ""
 	}
-	return val.(string)
+	return fmt.Sprintf("%v", val)
 }
 
 func (service *DefaultConfigService) SubSection(key string) ConfigService {

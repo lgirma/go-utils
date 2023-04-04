@@ -33,13 +33,16 @@ func TestLoadConfigFromYaml(t *testing.T) {
 
 func TestLoadConfigFromEnvVar(t *testing.T) {
 	os.Setenv("GO_UTILS_APP", "test")
+	os.Setenv("GO_UTILS_AGE", "3")
 	defer os.Unsetenv("GO_UTILS_APP")
-	service, err := GetConfigFrom(StaticMapConfigSource(map[string]any{"app": "toasted"})).
+	defer os.Unsetenv("GO_UTILS_AGE")
+	service, err := GetConfigFrom(StaticMapConfigSource(map[string]any{"app": "toasted", "age": 10})).
 		Add(GetEnvVarConfigSource("GO_UTILS")).
 		Build()
 	assert.Nil(t, err)
 	assert.NotNil(t, service)
 	assert.Equal(t, "test", service.GetStr("app"))
+	assert.Equal(t, int64(3), service.GetInt64("age"))
 }
 
 func TestDefaultConfigService(t *testing.T) {
