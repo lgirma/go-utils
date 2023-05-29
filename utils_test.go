@@ -47,6 +47,10 @@ func TestParse(t *testing.T) {
 	assert.Equal(t, int32(34), parsedInt32)
 	assert.True(t, ok)
 
+	parsedInt, ok := Parse[int]("34")
+	assert.Equal(t, int(34), parsedInt)
+	assert.True(t, ok)
+
 	parsedInt64, ok := Parse[int64]("34")
 	assert.Equal(t, int64(34), parsedInt64)
 	assert.True(t, ok)

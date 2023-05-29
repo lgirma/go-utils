@@ -99,6 +99,10 @@ func Parse[T any](str string) (T, bool) {
 		parsedInt64, err := strconv.ParseInt(str, 10, 16)
 		val = int16(parsedInt64)
 		return val.(T), err == nil
+	} else if _, ok := val.(int); ok {
+		parsedInt64, err := strconv.ParseInt(str, 10, 16)
+		val = int(parsedInt64)
+		return val.(T), err == nil
 	} else if _, ok := val.(int8); ok {
 		parsedInt64, err := strconv.ParseInt(str, 10, 8)
 		val = int8(parsedInt64)
