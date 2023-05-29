@@ -128,6 +128,11 @@ func Parse[T any](str string) (T, bool) {
 	}
 }
 
+func TryParse[T any](str string) T {
+	result, _ := Parse[T](str)
+	return result
+}
+
 func ParseToType(str string, t reflect.Type) (any, bool) {
 	var val any
 	if t.Kind() == reflect.String {
